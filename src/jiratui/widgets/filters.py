@@ -103,6 +103,8 @@ class AssigneeSearchInput(Vertical):
     Input keeps focus; Escape dismisses the list.
     """
 
+    can_focus = True
+
     class UserSearchRequested(Message):
         """Posted when the user has typed enough characters to trigger a server-side search."""
 
@@ -126,6 +128,10 @@ class AssigneeSearchInput(Vertical):
     def on_mount(self) -> None:
         self.query_one(OptionList).styles.display = 'none'
         self.query_one(OptionList).styles.max_height = 6
+
+    def on_focus(self) -> None:
+        """Redirect focus to the inner Input so keyboard events land there."""
+        self.query_one(Input).focus()
 
     # ------------------------------------------------------------------
     # public interface
