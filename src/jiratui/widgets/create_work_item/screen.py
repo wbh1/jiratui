@@ -86,7 +86,7 @@ class AddWorkItemScreen(Screen):
                     yield CreateWorkItemProjectSelectionInput([])
                     yield CreateWorkItemIssueTypeSelectionInput([])
                     yield CreateWorkItemReporterSelectionInput([])
-                    yield CreateWorkItemAssigneeSelectionInput([])
+                    yield CreateWorkItemAssigneeSelectionInput()
                 yield CreateWorkItemParentKeyField(self._parent_work_item_key)
                 yield CreateWorkItemIssueSummaryField()
                 yield CreateWorkItemDescription()

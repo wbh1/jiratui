@@ -376,7 +376,7 @@ class MainScreen(Screen):
                 yield ProjectSelectionInput(projects=[])
                 yield IssueTypeSelectionInput(types=[])
                 yield IssueStatusSelectionInput(statuses=[])
-                yield UserSelectionInput(users=[])
+                yield UserSelectionInput()
             with ItemGrid(classes='bottom-search-bar'):
                 yield WorkItemInputWidget(value=self.initial_work_item_key)
                 yield IssueSearchCreatedFromWidget()

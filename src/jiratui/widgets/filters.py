@@ -1,7 +1,9 @@
-from textual import on
+from textual import events, on
+from textual.app import ComposeResult
+from textual.containers import Vertical
 from textual.message import Message
 from textual.reactive import Reactive, reactive
-from textual.widgets import Checkbox, Input, Select
+from textual.widgets import Checkbox, Input, OptionList, Select
 
 from jiratui.constants import ASSIGNEE_SEARCH_DEBOUNCE_SECONDS, FULL_TEXT_SEARCH_DEFAULT_MINIMUM_TERM_LENGTH
 from jiratui.widgets.base import DateInput
@@ -93,13 +95,12 @@ class IssueStatusSelectionInput(Select):
         self.set_options(statuses or [])
 
 
-class UserSelectionInput(Select):
-    HELP = 'See Search by Assignee section in the help'
-    WIDGET_ID = 'jira-users-selector'
-    users: Reactive[dict | None] = reactive(None, always_update=True)
-    """A dictionary with 2 keys:
-    - users: list
-    - selection: str | None
+class AssigneeSearchInput(Vertical):
+    """Search-and-select autocomplete for assignees.
+
+    An Input for typing a search query sits above an OptionList that appears
+    when results arrive.  Arrow keys and Enter drive the OptionList while the
+    Input keeps focus; Escape dismisses the list.
     """
 
     class UserSearchRequested(Message):
@@ -109,51 +110,161 @@ class UserSelectionInput(Select):
             self.query = query
             super().__init__()
 
-    def __init__(self, users: list):
-        super().__init__(
-            options=users,
-            prompt='Select a user',
-            name='users',
-            id=self.WIDGET_ID,
-            type_to_search=True,
-            compact=True,
-            classes='jira-selector',
-        )
-        self.border_title = 'Assignee'
-        self.border_subtitle = '(a)'
-        self._initial_options: list[tuple[str, str]] = []
+    def __init__(self, id: str, **kwargs):
+        super().__init__(id=id, **kwargs)
+        self._selection: str | None = None
+        self._options: list[tuple[str, str]] = []
         self._search_timer = None
+        self._programmatic_update = False
+        self._options_visible = False
+
+    def compose(self) -> ComposeResult:
+        yield Input(placeholder='Search assignees...')
+        yield OptionList()
+
+    def on_mount(self) -> None:
+        self.query_one(OptionList).styles.display = 'none'
+        self.query_one(OptionList).styles.max_height = 6
+
+    # ------------------------------------------------------------------
+    # public interface
+    # ------------------------------------------------------------------
 
     @property
-    def help_anchor(self) -> str:
-        return '#search-by-assignee'
+    def selection(self) -> str | None:
+        """The account_id of the currently selected user, or None."""
+        return self._selection
 
-    def watch_users(self, users: dict | None = None) -> None:
-        self.clear()
-        if users and (items := users.get('users', []) or []):
-            options = [(item.display_name, item.account_id) for item in items]
-            self._initial_options = options
-            self.set_options(options)
-            if selection := users.get('selection'):
-                for option in options:
-                    if option[1] == selection:
-                        self.value = option[1]
-                        break
+    def set_options(self, options: list[tuple[str, str]]) -> None:
+        """Replace the option list with *options* and show it."""
+        self._options = options
+        option_list = self.query_one(OptionList)
+        option_list.set_options([name for name, _ in options])
+        if options:
+            option_list.highlighted = 0
+            self._show_options()
+        else:
+            self._hide_options()
+
+    def set_value(self, account_id: str) -> None:
+        """Pre-select the user whose account_id matches."""
+        for name, aid in self._options:
+            if aid == account_id:
+                self._selection = account_id
+                self._write_input(name)
+                self._hide_options()
+                return
+
+    def clear(self) -> None:
+        """Reset selection and hide the option list."""
+        self._selection = None
+        self._options = []
+        self._write_input('')
+        self._hide_options()
+
+    # ------------------------------------------------------------------
+    # event handlers
+    # ------------------------------------------------------------------
 
     @on(Input.Changed)
-    def _on_search_input(self, event: Input.Changed) -> None:
-        """Debounces typing in the type-to-search input and posts a server-side search request."""
+    def _on_input_changed(self, event: Input.Changed) -> None:
+        """Debounce typing and post a search request when the query is long enough."""
+        if self._programmatic_update:
+            return
         if self._search_timer:
             self._search_timer.cancel()
             self._search_timer = None
+        # New typing always clears a previous selection
+        self._selection = None
         query = (event.value or '').strip()
         if len(query) >= FULL_TEXT_SEARCH_DEFAULT_MINIMUM_TERM_LENGTH:
             self._search_timer = self.set_timer(
                 ASSIGNEE_SEARCH_DEBOUNCE_SECONDS,
                 lambda: self.post_message(self.UserSearchRequested(query)),
             )
-        elif self._initial_options:
-            self.set_options(self._initial_options)
+        else:
+            self._hide_options()
+
+    @on(Input.Submitted)
+    def _on_input_submitted(self, event: Input.Submitted) -> None:
+        """Enter selects the highlighted option when the list is visible."""
+        if self._options_visible and self.query_one(OptionList).highlighted is not None:
+            event.stop()
+            self._select_option(self.query_one(OptionList).highlighted)
+
+    def on_key(self, event: events.Key) -> None:
+        """Arrow keys and Escape drive the option list without moving focus."""
+        if not self._options_visible:
+            return
+        option_list = self.query_one(OptionList)
+        if event.key == 'down':
+            event.stop()
+            event.prevent_default()
+            highlighted = option_list.highlighted
+            if highlighted is not None and highlighted < option_list.option_count - 1:
+                option_list.highlighted = highlighted + 1
+            elif highlighted is None and option_list.option_count > 0:
+                option_list.highlighted = 0
+        elif event.key == 'up':
+            event.stop()
+            event.prevent_default()
+            highlighted = option_list.highlighted
+            if highlighted is not None and highlighted > 0:
+                option_list.highlighted = highlighted - 1
+        elif event.key == 'escape':
+            event.stop()
+            event.prevent_default()
+            self._hide_options()
+
+    # ------------------------------------------------------------------
+    # private helpers
+    # ------------------------------------------------------------------
+
+    def _show_options(self) -> None:
+        self.query_one(OptionList).styles.display = 'block'
+        self._options_visible = True
+
+    def _hide_options(self) -> None:
+        self.query_one(OptionList).styles.display = 'none'
+        self._options_visible = False
+
+    def _write_input(self, text: str) -> None:
+        """Set Input value without triggering the debounce handler."""
+        self._programmatic_update = True
+        self.query_one(Input).value = text
+        self._programmatic_update = False
+
+    def _select_option(self, index: int) -> None:
+        """Finalise selection of the option at *index*."""
+        if index < len(self._options):
+            name, account_id = self._options[index]
+            self._selection = account_id
+            self._write_input(name)
+            self._hide_options()
+
+
+class UserSelectionInput(AssigneeSearchInput):
+    """The assignee search widget used in the main filter bar."""
+
+    HELP = 'See Search by Assignee section in the help'
+    users: Reactive[dict | None] = reactive(None, always_update=True)
+    """A dictionary with 2 keys: users (list of JiraUser) and selection (str | None)."""
+
+    def __init__(self):
+        super().__init__(id='jira-users-selector', classes='jira-selector')
+        self.border_title = 'Assignee'
+        self.border_subtitle = '(a)'
+
+    @property
+    def help_anchor(self) -> str:
+        return '#search-by-assignee'
+
+    def watch_users(self, users: dict | None = None) -> None:
+        """Populate internal options from the fetched user list; pre-select if requested."""
+        if users and (items := users.get('users', []) or []):
+            self._options = [(item.display_name, item.account_id) for item in items]
+            if selection := users.get('selection'):
+                self.set_value(selection)
 
 
 class WorkItemInputWidget(Input):

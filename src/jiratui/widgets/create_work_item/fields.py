@@ -1,10 +1,9 @@
 from textual import on
-from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import Input, Select, TextArea
 
-from jiratui.constants import ASSIGNEE_SEARCH_DEBOUNCE_SECONDS, FULL_TEXT_SEARCH_DEFAULT_MINIMUM_TERM_LENGTH
 from jiratui.widgets.base import DateInput
+from jiratui.widgets.filters import AssigneeSearchInput
 
 
 class CreateWorkItemProjectSelectionInput(Select):
@@ -51,64 +50,21 @@ class CreateWorkItemIssueTypeSelectionInput(Select):
         self.border_subtitle = '(*)'
 
 
-class CreateWorkItemAssigneeSelectionInput(Select):
+class CreateWorkItemAssigneeSelectionInput(AssigneeSearchInput):
     WIDGET_ID = 'create-work-item-assignee-selector'
     users: Reactive[dict | None] = reactive(None, always_update=True)
-    """A dictionary with 2 keys:
-    - users: list
-    - selection: str | None
-    """
-    BORDER_TITLE = 'Assignee'
-    BORDER_SUB_TITLE = None
+    """A dictionary with 2 keys: users (list of JiraUser) and selection (str | None)."""
 
-    class UserSearchRequested(Message):
-        """Posted when the user has typed enough characters to trigger a server-side search."""
-
-        def __init__(self, query: str):
-            self.query = query
-            super().__init__()
-
-    def __init__(self, users: list, **kwargs):
-        super().__init__(
-            options=users,
-            prompt='Select a user',
-            id=self.WIDGET_ID,
-            type_to_search=True,
-            compact=True,
-            **kwargs,
-        )
-        self.border_title = self.BORDER_TITLE
-        if self.BORDER_SUB_TITLE:
-            self.border_subtitle = self.BORDER_SUB_TITLE
-        self._initial_options: list[tuple[str, str]] = []
-        self._search_timer = None
+    def __init__(self):
+        super().__init__(id=self.WIDGET_ID)
+        self.border_title = 'Assignee'
 
     def watch_users(self, users: dict | None = None) -> None:
-        self.clear()
+        """Populate internal options from the fetched user list; pre-select if requested."""
         if users and (items := users.get('users', []) or []):
-            options = [(item.display_name, item.account_id) for item in items]
-            self._initial_options = options
-            self.set_options(options)
+            self._options = [(item.display_name, item.account_id) for item in items]
             if selection := users.get('selection'):
-                for option in options:
-                    if option[1] == selection:
-                        self.value = option[1]
-                        break
-
-    @on(Input.Changed)
-    def _on_search_input(self, event: Input.Changed) -> None:
-        """Debounces typing in the type-to-search input and posts a server-side search request."""
-        if self._search_timer:
-            self._search_timer.cancel()
-            self._search_timer = None
-        query = (event.value or '').strip()
-        if len(query) >= FULL_TEXT_SEARCH_DEFAULT_MINIMUM_TERM_LENGTH:
-            self._search_timer = self.set_timer(
-                ASSIGNEE_SEARCH_DEBOUNCE_SECONDS,
-                lambda: self.post_message(self.UserSearchRequested(query)),
-            )
-        elif self._initial_options:
-            self.set_options(self._initial_options)
+                self.set_value(selection)
 
 
 class CreateWorkItemReporterSelectionInput(Select):

@@ -63,16 +63,27 @@ class TestDCUserAssignableSearch:
 
 
 class TestUserSearchRequestedMessage:
-    """Both assignee selectors expose a UserSearchRequested message with a query field."""
+    """All assignee selectors share the same UserSearchRequested message via inheritance."""
 
-    def test_filter_widget_message_carries_query(self):
-        from jiratui.widgets.filters import UserSelectionInput
+    def test_base_widget_message_carries_query(self):
+        from jiratui.widgets.filters import AssigneeSearchInput
 
-        msg = UserSelectionInput.UserSearchRequested('adam')
+        msg = AssigneeSearchInput.UserSearchRequested('adam')
         assert msg.query == 'adam'
 
-    def test_create_widget_message_carries_query(self):
-        from jiratui.widgets.create_work_item.fields import CreateWorkItemAssigneeSelectionInput
+    def test_filter_widget_inherits_message(self):
+        from jiratui.widgets.filters import AssigneeSearchInput, UserSelectionInput
 
-        msg = CreateWorkItemAssigneeSelectionInput.UserSearchRequested('bob')
-        assert msg.query == 'bob'
+        assert UserSelectionInput.UserSearchRequested is AssigneeSearchInput.UserSearchRequested
+
+    def test_details_widget_inherits_message(self):
+        from jiratui.widgets.filters import AssigneeSearchInput
+        from jiratui.widgets.work_item_details.fields import IssueDetailsAssigneeSelection
+
+        assert IssueDetailsAssigneeSelection.UserSearchRequested is AssigneeSearchInput.UserSearchRequested
+
+    def test_create_widget_inherits_message(self):
+        from jiratui.widgets.create_work_item.fields import CreateWorkItemAssigneeSelectionInput
+        from jiratui.widgets.filters import AssigneeSearchInput
+
+        assert CreateWorkItemAssigneeSelectionInput.UserSearchRequested is AssigneeSearchInput.UserSearchRequested

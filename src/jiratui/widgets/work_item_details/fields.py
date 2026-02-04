@@ -14,17 +14,18 @@ from textual.widgets import Button, Input, Label, MaskedInput, ProgressBar, Sele
 from textual.widgets.selection_list import Selection
 
 from jiratui.widgets.base import DateInput, ReadOnlyField
-from jiratui.widgets.filters import IssueStatusSelectionInput, UserSelectionInput
+from jiratui.widgets.filters import AssigneeSearchInput, IssueStatusSelectionInput
 
 
-class IssueDetailsAssigneeSelection(UserSelectionInput):
-    """A select widget that stores the assignee field of a work item."""
+class IssueDetailsAssigneeSelection(AssigneeSearchInput):
+    """The assignee search widget used in the issue-details panel."""
 
     WIDGET_ID = 'jira-users-assignee-selector-edit'
     update_enabled: Reactive[bool | None] = reactive(True)
 
-    def __init__(self, users: list):
-        super().__init__(users)
+    def __init__(self):
+        super().__init__(id=self.WIDGET_ID)
+        self.border_title = 'Assignee'
         self.border_subtitle = '(x)'
         self.jira_field_key = 'assignee'
         """The id used by Jira to identify this field in the edit-metadata."""
