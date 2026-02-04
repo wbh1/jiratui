@@ -303,7 +303,7 @@ class IssueDetailsWidget(Vertical):
             `None`.
         """
         if key == 'x':
-            self.screen.set_focus(self.assignee_selector)
+            self.assignee_selector.focus()
         elif key == 'y':
             self.screen.set_focus(self.priority_selector)
         elif key == 'z':

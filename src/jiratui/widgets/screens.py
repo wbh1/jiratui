@@ -655,6 +655,8 @@ class MainScreen(Screen):
         event.stop()
         if project_key := self.project_selector.selection:
             self.run_worker(self._search_assignees_for_project(project_key, event.query), exclusive=True)
+        else:
+            self.notify('Select a project to search assignees', severity='warning', title='Assignee Search')
 
     async def _search_assignees_for_project(self, project_key: str, query: str) -> None:
         response: APIControllerResponse = await self.api.search_users_assignable_to_projects(
@@ -931,7 +933,7 @@ class MainScreen(Screen):
 
         if widget_id := self.keys_widget_ids_mapping.get(key):
             if target_widget := self.query_one(widget_id):
-                self.set_focus(target_widget)
+                target_widget.focus()
 
     def action_copy_issue_url(self) -> None:
         """Copy to the clipboard the URL of the item currently selected in the search results."""
