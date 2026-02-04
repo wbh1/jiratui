@@ -112,6 +112,7 @@ class AssigneeSearchInput(Vertical):
 
     def __init__(self, id: str, **kwargs):
         super().__init__(id=id, **kwargs)
+        self.styles.height = 'auto'
         self._selection: str | None = None
         self._options: list[tuple[str, str]] = []
         self._search_timer = None
@@ -119,7 +120,7 @@ class AssigneeSearchInput(Vertical):
         self._options_visible = False
 
     def compose(self) -> ComposeResult:
-        yield Input(placeholder='Search assignees...')
+        yield Input(placeholder='Search assignees...', compact=True)
         yield OptionList()
 
     def on_mount(self) -> None:
@@ -172,7 +173,7 @@ class AssigneeSearchInput(Vertical):
         if self._programmatic_update:
             return
         if self._search_timer:
-            self._search_timer.cancel()
+            self._search_timer.stop()
             self._search_timer = None
         # New typing always clears a previous selection
         self._selection = None
