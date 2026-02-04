@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, cast
 
 from dateutil import parser  # type:ignore[import-untyped]
+from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, ItemGrid, Right, Vertical, VerticalScroll
@@ -20,6 +21,7 @@ from jiratui.utils.work_item_updates import (
     work_item_priority_has_changed,
 )
 from jiratui.widgets.base import ReadOnlyTextField
+from jiratui.widgets.filters import UserSelectionInput
 from jiratui.widgets.work_item_details.factory import create_dynamic_widgets_for_updating_work_item
 from jiratui.widgets.work_item_details.fields import (
     IssueComponentsField,
@@ -834,6 +836,23 @@ class IssueDetailsWidget(Vertical):
                 self.assignee_selector.update_enabled = field_is_editable
             else:
                 self.assignee_selector.update_enabled = False
+
+    @on(UserSelectionInput.UserSearchRequested)
+    def _on_assignee_search_requested(self, event: UserSelectionInput.UserSearchRequested) -> None:
+        """Handles a server-side assignee search triggered by typing in the assignee selector."""
+        event.stop()
+        if self.issue:
+            self.run_worker(self._search_assignees_for_issue(self.issue.key, event.query), exclusive=True)
+
+    async def _search_assignees_for_issue(self, issue_key: str, query: str) -> None:
+        application = cast('JiraApp', self.app)  # type: ignore[name-defined] # noqa: F821
+        response: APIControllerResponse = await application.api.search_users_assignable_to_issue(
+            issue_key=issue_key,
+            query=query,
+        )
+        if response.success and response.result:
+            options = [(user.display_name, user.account_id) for user in response.result]
+            self.assignee_selector.set_options(options)
 
     async def _retrieve_applicable_status_codes(
         self,

@@ -143,6 +143,23 @@ class AddWorkItemScreen(Screen):
                     'selection': self._reporter_account_id,
                 }
 
+    @on(CreateWorkItemAssigneeSelectionInput.UserSearchRequested)
+    def _on_assignee_search_requested(self, event: CreateWorkItemAssigneeSelectionInput.UserSearchRequested) -> None:
+        """Handles a server-side assignee search triggered by typing in the assignee selector."""
+        event.stop()
+        if project_key := self.project_selector.selection:
+            self.run_worker(self._search_assignees_for_project(project_key, event.query), exclusive=True)
+
+    async def _search_assignees_for_project(self, project_key: str, query: str) -> None:
+        application = cast('JiraApp', self.app)  # type:ignore[name-defined] # noqa: F821
+        response: APIControllerResponse = await application.api.search_users_assignable_to_projects(
+            project_keys=[project_key],
+            query=query,
+        )
+        if response.success and response.result:
+            options = [(user.display_name, user.account_id) for user in response.result]
+            self.assignee_selector.set_options(options)
+
     @on(Select.Changed, 'CreateWorkItemProjectSelectionInput')
     def handle_project_selection(self) -> None:
         # fetch issue types for the project

@@ -649,6 +649,22 @@ class MainScreen(Screen):
         )
         return []
 
+    @on(UserSelectionInput.UserSearchRequested)
+    def _on_assignee_search_requested(self, event: UserSelectionInput.UserSearchRequested) -> None:
+        """Handles a server-side assignee search triggered by typing in the assignee selector."""
+        event.stop()
+        if project_key := self.project_selector.selection:
+            self.run_worker(self._search_assignees_for_project(project_key, event.query), exclusive=True)
+
+    async def _search_assignees_for_project(self, project_key: str, query: str) -> None:
+        response: APIControllerResponse = await self.api.search_users_assignable_to_projects(
+            project_keys=[project_key],
+            query=query,
+        )
+        if response.success and response.result:
+            options = [(user.display_name, user.account_id) for user in response.result]
+            self.users_selector.set_options(options)
+
     async def _search_work_items(
         self,
         next_page_token: str | None = None,
