@@ -182,6 +182,16 @@ class AssigneeSearchInput(Vertical):
         if self._search_timer:
             self._search_timer.stop()
             self._search_timer = None
+
+        # Check if the input value matches the currently selected option
+        # If it does, this is from a programmatic update after selection, not user typing
+        if self._selection is not None:
+            for name, account_id in self._options:
+                if account_id == self._selection and event.value == name:
+                    # Input value matches selected option - keep selection and hide options
+                    self._hide_options()
+                    return
+
         # New typing always clears a previous selection
         self._selection = None
         query = (event.value or '').strip()
