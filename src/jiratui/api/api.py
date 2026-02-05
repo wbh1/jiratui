@@ -1436,6 +1436,54 @@ class JiraDataCenterAPI(JiraAPI):
         """
         return await super().user_search(username=query or username, offset=offset, limit=limit)
 
+    async def user_assignable_search(
+        self,
+        project_id_or_key: str | None = None,
+        issue_key: str | None = None,
+        issue_id: str | None = None,
+        offset: int | None = None,
+        limit: int | None = 50,
+        query: str | None = None,
+    ) -> list[dict]:
+        """Retrieves a list of users that can be assigned to an issue.
+
+        DC uses 'username' instead of 'query' for the search filter parameter.
+
+        See Also:
+            https://developer.atlassian.com/server/jira/platform/rest/v11001/api-group-user-search/
+
+        Args:
+            project_id_or_key: the project ID or project key (case-sensitive).
+            issue_key: the key of the issue.
+            issue_id: the ID of the issue.
+            offset: the index of the first item to return in a page of results.
+            limit: the maximum number of items to return. Default is `50`.
+            query: a string matched against user attributes such as displayName and emailAddress.
+
+        Returns:
+            A list of dictionaries with the details of the users.
+        """
+        if not any([project_id_or_key, issue_id, issue_key]):
+            raise ValueError('One of these parameters is required: project_id, issue_id, issue_key')
+
+        params: dict[str, Any] = {}
+        if project_id_or_key:
+            params['project'] = project_id_or_key
+        if offset is not None:
+            params['startAt'] = offset
+        if limit is not None:
+            params['maxResults'] = limit
+        if query:
+            params['username'] = query
+        if issue_key:
+            params['issueKey'] = issue_key
+        if issue_id:
+            params['issueId'] = issue_id
+
+        return await self._client.make_request(  # type:ignore[return-value]
+            method=httpx.AsyncClient.get, url='user/assignable/search', params=params
+        )
+
     async def user_assignable_multi_projects(
         self,
         project_keys: list[str] = None,

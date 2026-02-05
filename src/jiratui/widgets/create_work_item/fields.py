@@ -3,6 +3,7 @@ from textual.reactive import Reactive, reactive
 from textual.widgets import Input, Select, TextArea
 
 from jiratui.widgets.base import DateInput
+from jiratui.widgets.filters import AssigneeSearchInput
 
 
 class CreateWorkItemProjectSelectionInput(Select):
@@ -49,39 +50,21 @@ class CreateWorkItemIssueTypeSelectionInput(Select):
         self.border_subtitle = '(*)'
 
 
-class CreateWorkItemAssigneeSelectionInput(Select):
+class CreateWorkItemAssigneeSelectionInput(AssigneeSearchInput):
     WIDGET_ID = 'create-work-item-assignee-selector'
     users: Reactive[dict | None] = reactive(None, always_update=True)
-    """A dictionary with 2 keys:
-    - users: list
-    - selection: str | None
-    """
-    BORDER_TITLE = 'Assignee'
-    BORDER_SUB_TITLE = None
+    """A dictionary with 2 keys: users (list of JiraUser) and selection (str | None)."""
 
-    def __init__(self, users: list, **kwargs):
-        super().__init__(
-            options=users,
-            prompt='Select a user',
-            id=self.WIDGET_ID,
-            type_to_search=True,
-            compact=True,
-            **kwargs,
-        )
-        self.border_title = self.BORDER_TITLE
-        if self.BORDER_SUB_TITLE:
-            self.border_subtitle = self.BORDER_SUB_TITLE
+    def __init__(self):
+        super().__init__(id=self.WIDGET_ID)
+        self.border_title = 'Assignee'
 
     def watch_users(self, users: dict | None = None) -> None:
-        self.clear()
+        """Populate internal options from the fetched user list; pre-select if requested."""
         if users and (items := users.get('users', []) or []):
-            options = [(item.display_name, item.account_id) for item in items]
-            self.set_options(options)
+            self._options = [(item.display_name, item.account_id) for item in items]
             if selection := users.get('selection'):
-                for option in options:
-                    if option[1] == selection:
-                        self.value = option[1]
-                        break
+                self.set_value(selection)
 
 
 class CreateWorkItemReporterSelectionInput(Select):
