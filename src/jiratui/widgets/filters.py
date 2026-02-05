@@ -5,7 +5,10 @@ from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import Checkbox, Input, OptionList, Select
 
-from jiratui.constants import ASSIGNEE_SEARCH_DEBOUNCE_SECONDS, FULL_TEXT_SEARCH_DEFAULT_MINIMUM_TERM_LENGTH
+from jiratui.constants import (
+    ASSIGNEE_SEARCH_DEBOUNCE_SECONDS,
+    FULL_TEXT_SEARCH_DEFAULT_MINIMUM_TERM_LENGTH,
+)
 from jiratui.widgets.base import DateInput
 from jiratui.widgets.jql import JQLEditorScreen
 
@@ -143,12 +146,17 @@ class AssigneeSearchInput(Vertical):
         """The account_id of the currently selected user, or None."""
         return self._selection
 
-    def set_options(self, options: list[tuple[str, str]]) -> None:
-        """Replace the option list with *options* and show it."""
+    def set_options(self, options: list[tuple[str, str]], show: bool = True) -> None:
+        """Replace the option list with *options* and optionally show it.
+
+        Args:
+            options: List of (display_name, account_id) tuples.
+            show: If True, show the options dropdown. If False, keep it hidden.
+        """
         self._options = options
         option_list = self.query_one(OptionList)
         option_list.set_options([name for name, _ in options])
-        if options:
+        if options and show:
             option_list.highlighted = 0
             self._show_options()
         else:
@@ -156,6 +164,9 @@ class AssigneeSearchInput(Vertical):
 
     def set_value(self, account_id: str) -> None:
         """Pre-select the user whose account_id matches."""
+        if self._search_timer:
+            self._search_timer.stop()
+            self._search_timer = None
         for name, aid in self._options:
             if aid == account_id:
                 self._selection = account_id
@@ -165,6 +176,9 @@ class AssigneeSearchInput(Vertical):
 
     def clear(self) -> None:
         """Reset selection and hide the option list."""
+        if self._search_timer:
+            self._search_timer.stop()
+            self._search_timer = None
         self._selection = None
         self._options = []
         self._write_input('')
@@ -177,7 +191,7 @@ class AssigneeSearchInput(Vertical):
     @on(Input.Changed)
     def _on_input_changed(self, event: Input.Changed) -> None:
         """Debounce typing and post a search request when the query is long enough."""
-        if self._programmatic_update:
+        if self._programmatic_update or not self.query_one(Input).has_focus:
             return
         if self._search_timer:
             self._search_timer.stop()

@@ -823,7 +823,7 @@ class IssueDetailsWidget(Vertical):
         )
 
         if selectable_users:
-            self.assignee_selector.set_options(selectable_users)
+            self.assignee_selector.set_options(selectable_users, show=False)
             if current_assignee:
                 # update the current selection
                 self.assignee_selector.set_value(current_assignee.account_id)
@@ -831,7 +831,7 @@ class IssueDetailsWidget(Vertical):
         else:
             if current_assignee:
                 self.assignee_selector.set_options(
-                    [(current_assignee.display_name, current_assignee.account_id)]
+                    [(current_assignee.display_name, current_assignee.account_id)], show=False
                 )
                 self.assignee_selector.update_enabled = field_is_editable
             else:
@@ -842,7 +842,9 @@ class IssueDetailsWidget(Vertical):
         """Handles a server-side assignee search triggered by typing in the assignee selector."""
         event.stop()
         if self.issue:
-            self.run_worker(self._search_assignees_for_issue(self.issue.key, event.query), exclusive=True)
+            self.run_worker(
+                self._search_assignees_for_issue(self.issue.key, event.query), exclusive=True
+            )
 
     async def _search_assignees_for_issue(self, issue_key: str, query: str) -> None:
         application = cast('JiraApp', self.app)  # type: ignore[name-defined] # noqa: F821
