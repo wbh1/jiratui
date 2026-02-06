@@ -17,6 +17,7 @@ table summaries the hot-keys and the component they activate.
 | `p` | Activates the Project dropdown                    |
 | `t` | Activates the Issue Type dropdown                 |
 | `s` | Activates the Status dropdown                     |
+| `c` | Activates the Status Category dropdown            |
 | `a` | Activates the Assignee dropdown                   |
 | `k` | Activates the Work Item Key input                 |
 | `f` | Activates the Created From input                  |
@@ -109,6 +110,16 @@ types will be different though.
 
 Search work items based on their status. If a project is selected then this list will contain the statuses supported by
 the work types in the project. If no project is selected then this list will contain all possible statuses.
+
+### Search by Status Category
+
+Filter work items by their status category. Jira groups all statuses into three fixed categories:
+
+- **To Do** — work that has not been started
+- **In Progress** — work that is actively being worked on
+- **Done** — work that has been completed
+
+This is useful when a project has many individual statuses and you want a broader filter.
 
 ### Search by Assignee
 
