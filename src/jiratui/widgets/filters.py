@@ -98,6 +98,28 @@ class IssueStatusSelectionInput(Select):
         self.set_options(statuses or [])
 
 
+class StatusCategorySelectionInput(Select):
+    HELP = 'See Search by Status Category section in the help'
+
+    def __init__(self):
+        options = [('To Do', 'To Do'), ('In Progress', 'In Progress'), ('Done', 'Done')]
+        super().__init__(
+            options=options,
+            prompt='Select a category',
+            name='status_category',
+            id='jira-status-category-selector',
+            type_to_search=False,
+            compact=True,
+            classes='jira-selector',
+        )
+        self.border_title = 'Status Category'
+        self.border_subtitle = '(c)'
+
+    @property
+    def help_anchor(self) -> str:
+        return '#search-by-status-category'
+
+
 class AssigneeSearchInput(Vertical):
     """Search-and-select autocomplete for assignees.
 

@@ -707,6 +707,7 @@ class APIController:
         created_from: date | None = None,
         created_until: date | None = None,
         status: int | None = None,
+        status_category: str | None = None,
         assignee: str | None = None,
         issue_type: int | None = None,
         jql_query: str | None = None,
@@ -715,7 +716,15 @@ class APIController:
             return {'jql': jql_query.strip(), 'updated_from': None}
 
         criteria_defined = any(
-            [project_key, created_from, created_until, status, assignee, issue_type]
+            [
+                project_key,
+                created_from,
+                created_until,
+                status,
+                status_category,
+                assignee,
+                issue_type,
+            ]
         )
         if criteria_defined:
             return {}
@@ -745,6 +754,7 @@ class APIController:
         created_from: date | None = None,
         created_until: date | None = None,
         status: int | None = None,
+        status_category: str | None = None,
         assignee: str | None = None,
         issue_type: int | None = None,
         search_in_active_sprint: bool = False,
@@ -782,6 +792,7 @@ class APIController:
             created_from=created_from,
             created_until=created_until,
             status=status,
+            status_category=status_category,
             assignee=assignee,
             issue_type=issue_type,
             jql_query=jql_query,
@@ -793,6 +804,7 @@ class APIController:
                 created_until=created_until,
                 updated_from=criteria.get('updated_from'),
                 status=status,
+                status_category=status_category,
                 assignee=assignee,
                 issue_type=issue_type,
                 search_in_active_sprint=search_in_active_sprint,
@@ -840,6 +852,7 @@ class APIController:
         created_from: date | None = None,
         created_until: date | None = None,
         status: int | None = None,
+        status_category: str | None = None,
         assignee: str | None = None,
         issue_type: int | None = None,
         search_in_active_sprint: bool = False,
@@ -882,6 +895,7 @@ class APIController:
             created_from=created_from,
             created_until=created_until,
             status=status,
+            status_category=status_category,
             assignee=assignee,
             issue_type=issue_type,
             jql_query=jql_query,
@@ -899,6 +913,7 @@ class APIController:
                 created_until=created_until,
                 updated_from=criteria.get('updated_from'),
                 status=status,
+                status_category=status_category,
                 assignee=assignee,
                 issue_type=issue_type,
                 search_in_active_sprint=search_in_active_sprint,
@@ -955,6 +970,7 @@ class APIController:
         created_from: date | None = None,
         created_until: date | None = None,
         status: int | None = None,
+        status_category: str | None = None,
         assignee: str | None = None,
         issue_type: int | None = None,
         jql_query: str | None = None,
@@ -980,6 +996,7 @@ class APIController:
             created_from=created_from,
             created_until=created_until,
             status=status,
+            status_category=status_category,
             assignee=assignee,
             issue_type=issue_type,
             jql_query=jql_query,
@@ -992,6 +1009,7 @@ class APIController:
                 created_until=created_until,
                 updated_from=criteria.get('updated_from'),
                 status=status,
+                status_category=status_category,
                 assignee=assignee,
                 issue_type=issue_type,
                 jql_query=criteria.get('jql'),

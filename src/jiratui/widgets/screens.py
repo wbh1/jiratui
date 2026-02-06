@@ -34,6 +34,7 @@ from jiratui.widgets.filters import (
     JQLSearchWidget,
     OrderByWidget,
     ProjectSelectionInput,
+    StatusCategorySelectionInput,
     UserSelectionInput,
     WorkItemInputWidget,
 )
@@ -93,6 +94,12 @@ class MainScreen(Screen):
             key='s',
             action='focus_widget("s")',
             description='Focus the status selection widget',
+            show=False,
+        ),
+        Binding(
+            key='c',
+            action='focus_widget("c")',
+            description='Focus the status category selection widget',
             show=False,
         ),
         Binding(
@@ -251,6 +258,7 @@ class MainScreen(Screen):
             'p': '#jira-project-selector',
             't': '#jira-issue-types-selector',
             's': '#jira-issue-status-selector',
+            'c': '#jira-status-category-selector',
             'a': '#jira-users-selector',
             'k': '#input_issue_key',
             'f': '#input_date_from',
@@ -275,6 +283,10 @@ class MainScreen(Screen):
     @property
     def issue_status_selector(self) -> IssueStatusSelectionInput:
         return self.query_one(IssueStatusSelectionInput)
+
+    @property
+    def status_category_selector(self) -> StatusCategorySelectionInput:
+        return self.query_one(StatusCategorySelectionInput)
 
     @property
     def issue_type_selector(self) -> IssueTypeSelectionInput:
@@ -376,6 +388,7 @@ class MainScreen(Screen):
                 yield ProjectSelectionInput(projects=[])
                 yield IssueTypeSelectionInput(types=[])
                 yield IssueStatusSelectionInput(statuses=[])
+                yield StatusCategorySelectionInput()
                 yield UserSelectionInput()
             with ItemGrid(classes='bottom-search-bar'):
                 yield WorkItemInputWidget(value=self.initial_work_item_key)
@@ -654,9 +667,13 @@ class MainScreen(Screen):
         """Handles a server-side assignee search triggered by typing in the assignee selector."""
         event.stop()
         if project_key := self.project_selector.selection:
-            self.run_worker(self._search_assignees_for_project(project_key, event.query), exclusive=True)
+            self.run_worker(
+                self._search_assignees_for_project(project_key, event.query), exclusive=True
+            )
         else:
-            self.notify('Select a project to search assignees', severity='warning', title='Assignee Search')
+            self.notify(
+                'Select a project to search assignees', severity='warning', title='Assignee Search'
+            )
 
     async def _search_assignees_for_project(self, project_key: str, query: str) -> None:
         response: APIControllerResponse = await self.api.search_users_assignable_to_projects(
@@ -691,6 +708,10 @@ class MainScreen(Screen):
         search_field_status: int | None = None
         if value := self.issue_status_selector.selection:
             search_field_status = int(value)
+
+        search_field_status_category: str | None = None
+        if value := self.status_category_selector.selection:
+            search_field_status_category = value
 
         search_field_created_from: date | None = None
         if value := self.issue_date_from_input.value:
@@ -733,6 +754,7 @@ class MainScreen(Screen):
                 created_from=search_field_created_from,
                 created_until=search_field_created_until,
                 status=search_field_status,
+                status_category=search_field_status_category,
                 assignee=search_field_assignee,
                 issue_type=search_field_issue_type,
                 search_in_active_sprint=self.active_sprint_checkbox.value,
@@ -747,6 +769,7 @@ class MainScreen(Screen):
                 created_from=search_field_created_from,
                 created_until=search_field_created_until,
                 status=search_field_status,
+                status_category=search_field_status_category,
                 assignee=search_field_assignee,
                 issue_type=search_field_issue_type,
                 search_in_active_sprint=self.active_sprint_checkbox.value,
@@ -776,6 +799,7 @@ class MainScreen(Screen):
                 created_from=search_field_created_from,
                 created_until=search_field_created_until,
                 status=search_field_status,
+                status_category=search_field_status_category,
                 assignee=search_field_assignee,
                 issue_type=search_field_issue_type,
                 jql_query=jql_query,

@@ -1634,6 +1634,62 @@ async def test_search_issues_for_jira_dc(
         created_until=None,
         updated_from=None,
         status=None,
+        status_category=None,
+        assignee=None,
+        issue_type=None,
+        search_in_active_sprint=False,
+        jql_query=None,
+        offset=expected_offset,
+        fields=['id', 'key', 'status', 'summary', 'issuetype', 'parent'],
+        limit=None,
+        order_by=None,
+    )
+
+
+@pytest.mark.parametrize('page, expected_offset', [(1, 0)])
+@pytest.mark.asyncio
+@patch('jiratui.api_controller.factories.CONFIGURATION')
+@patch.object(APIController, '_build_criteria_for_searching_work_items')
+@patch.object(JiraDataCenterAPI, 'search_issues')
+async def test_search_issues_for_jira_dc_with_status_category(
+    search_issues_mock: Mock,
+    build_criteria_for_searching_work_items_mock: Mock,
+    configuration_mock: Mock,
+    jira_api_controller_for_jira_dc: APIController,
+    page,
+    expected_offset,
+):
+    # GIVEN
+    build_criteria_for_searching_work_items_mock.return_value = {}
+    search_issues_mock.return_value = {
+        'expand': 'names,schema',
+        'startAt': 0,
+        'maxResults': 50,
+        'total': 1,
+        'issues': [
+            {
+                'expand': '',
+                'id': '10001',
+                'self': 'http://www.example.com/jira/rest/api/2/issue/10001',
+                'key': 'HSP-1',
+                'fields': {'summary': '(Sample) Set Up Payment Logging'},
+            }
+        ],
+    }
+    # WHEN
+    response = await jira_api_controller_for_jira_dc.search_issues_by_page_number(
+        page=page,
+        status_category='Done',
+    )
+    # THEN
+    assert response.success is True
+    search_issues_mock.assert_called_once_with(
+        project_key=None,
+        created_from=None,
+        created_until=None,
+        updated_from=None,
+        status=None,
+        status_category='Done',
         assignee=None,
         issue_type=None,
         search_in_active_sprint=False,
@@ -1695,6 +1751,37 @@ async def test_count_issues_with_api_error(
 @patch('jiratui.api_controller.factories.CONFIGURATION')
 @patch.object(APIController, '_build_criteria_for_searching_work_items')
 @patch.object(JiraAPI, 'work_items_search_approximate_count')
+async def test_count_issues_with_status_category(
+    work_items_search_approximate_count_mock: Mock,
+    build_criteria_for_searching_work_items_mock: Mock,
+    configuration_mock: Mock,
+    jira_api_controller: APIController,
+):
+    # GIVEN
+    build_criteria_for_searching_work_items_mock.return_value = {}
+    work_items_search_approximate_count_mock.return_value = {'count': '3'}
+    # WHEN
+    response = await jira_api_controller.count_issues(status_category='To Do')
+    # THEN
+    assert response.success is True
+    assert response.result == 3
+    work_items_search_approximate_count_mock.assert_called_once_with(
+        project_key=None,
+        created_from=None,
+        created_until=None,
+        updated_from=None,
+        status=None,
+        status_category='To Do',
+        assignee=None,
+        issue_type=None,
+        jql_query=None,
+    )
+
+
+@pytest.mark.asyncio
+@patch('jiratui.api_controller.factories.CONFIGURATION')
+@patch.object(APIController, '_build_criteria_for_searching_work_items')
+@patch.object(JiraAPI, 'work_items_search_approximate_count')
 async def test_count_issues_with_criteria(
     work_items_search_approximate_count_mock: Mock,
     build_criteria_for_searching_work_items_mock: Mock,
@@ -1720,6 +1807,7 @@ async def test_count_issues_with_criteria(
         created_until=None,
         updated_from=datetime(2025, 12, 31).date(),
         status=None,
+        status_category=None,
         assignee=None,
         issue_type=None,
         jql_query='query',

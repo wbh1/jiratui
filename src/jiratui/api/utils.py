@@ -10,6 +10,7 @@ def build_issue_search_jql(
     updated_from: date | None = None,
     updated_until: date | None = None,
     status: int | None = None,
+    status_category: str | None = None,
     assignee: str | None = None,
     issue_type: int | None = None,
     jql_query: str | None = None,
@@ -25,6 +26,7 @@ def build_issue_search_jql(
         updated_from: a date to search for issues.
         updated_until: a date to search for issues.
         status: find work items whose status matches this status name/ID.
+        status_category: filter by Jira status category ("To Do", "In Progress", or "Done").
         assignee: find work items assigned to the given user. The user is specified by the account ID, email address or
         name of a user.
         issue_type: the type of issue.
@@ -54,6 +56,8 @@ def build_issue_search_jql(
         fields.append(f'updated <= "{value}"')
     if status:
         fields.append(f'status = "{status}"')
+    if status_category:
+        fields.append(f'statusCategory = "{status_category}"')
     if assignee:
         fields.append(f'assignee = "{assignee}"')
     if issue_type:

@@ -48,6 +48,24 @@ def test_build_issue_search_jql_with_parameters_and_jql_query():
     )
 
 
+def test_build_issue_search_jql_with_status_category():
+    # WHEN
+    result = build_issue_search_jql(status_category='In Progress')
+    # THEN
+    assert result == 'statusCategory = "In Progress"'
+
+
+def test_build_issue_search_jql_with_status_category_and_other_parameters():
+    # WHEN
+    result = build_issue_search_jql(
+        project_key='P1',
+        status_category='Done',
+        assignee='1',
+    )
+    # THEN
+    assert result == 'project = "P1" and statusCategory = "Done" and assignee = "1"'
+
+
 def test_build_issue_search_jql_without_parameters_and_jql_query():
     # WHEN
     result = build_issue_search_jql(jql_query='q=5')
